@@ -19,6 +19,12 @@ class Airport:
         | 2   | Pole Angle            | ~ -0.418 rad (-24°) | ~ 0.418 rad (24°) |
         | 3   | Pole Angular Velocity | -Inf                | Inf               |
 
+        # Reset Method
+
+        # Step Method
+
+        # Render Method
+
     """
     def __init__(self):
         self.observation_space = {1: 'Wind_Speed',
@@ -27,7 +33,8 @@ class Airport:
         
         self.action_space = {0: 'Delay', 
                              1: 'cancel', 
-                             2:'Proceed'}
+                             2:'Proceed',
+                             3:'Redirect'}
 
     def reset(self):
         pass
@@ -44,4 +51,7 @@ class Airport:
             pass
     
     def render(self, rendering_type): # can be web or pygame.
-        pass 
+        if rendering_type == 'web':
+            return 
+        if rendering_type == 'pc':
+            pass
