@@ -2,9 +2,10 @@ import numpy as np
 import socket
 from Apis.WeatherApi import setupWeather
 from Apis.FlightAPI import flightapi
+import gymnasium
 
 
-class Airport:
+class Airport(gymnasium.Env):
     """
     # Airport Environment Description:
     This environment corresponds to a weather prediction in order to decide what state airport should proceeed with.
@@ -17,9 +18,9 @@ class Airport:
     # Action Space: is an ndarray with shape `(1, )` which can take a value of 0, 1, 2.
     | Num | Action       |
     | --- | -------------|
-    | 0   |
-    | 1   |
-    | 2   |
+    | 0   | LAND
+    | 1   | DELAY
+    | 2   | CHANGE AIRPORT
     # Observation Space:
 
     # Reset Method
@@ -30,18 +31,23 @@ class Airport:
 
     # SELECT NEW AIRPORT:
     This method, will look for near by airport that is safe to land. Will look around Airplane location and fuel.
-
     #
 
     """
 
-    def __init__(self, port, airport_ip):
-        self.observation_space = {1: "Wind_Speed", 2: "Temperature", 3: "Precipitation"}
+    metadata = {"render_mode": ["web", "pc"]}
 
-        self.action_space = {0: "Delay", 1: "cancel", 2: "Proceed", 3: "Redirect"}
+    def __init__(self, port, airport_ip):
+        self.observation_space = gymnasium.spaces.Box(
+            low=0, high=100, shape=(3,), dtype=float
+        )
+        self.action_space = gymnasium.spaces.Discrete(4)
+        # self.observation_space = {1: "Wind_Speed", 2: "Temperature", 3: "Precipitation"}
+        # self.action_space = {0: "Delay", 1: "cancel", 2: "Proceed", 3: "Redirect"}
         self.port = port
         self.airport_ip = airport_ip
         self.packet = {}
+        self.weather = setupWeather()
 
     def socket(self):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -60,18 +66,17 @@ class Airport:
         response = self.sock.recv(self.port).decode()
         if response == "Ready":  # if there is plane ready to land.
             # if the wind is below 30mph and temp is above freezing F.
-            if self.packet[1] < 30 and self.packet[2] > 32:
+            if self.weather[0] < 30 and self.weather[1] > 32:
                 self.sock.send("safe".encode())
                 self.packet = self.sock.recv(self.port).encode()
-            elif self.packet[1] >= 30 and self.packet[2] <= 32:
+            elif self.weather[0] >= 30 and self.weather[1] <= 32:
                 self.sock.send("changeAirport".encode())
                 self.packet = self.sock.recv(self.port).encode()
-            elif self.packet[3] > 50:
+            elif self.weather[3] > 50:
                 self.sock.send("Grounded".encode())
                 self.packet = self.sock.recv(self.port).encode()
         if response == "changeAirport":
-            new_airport = self.select_new_airport()
-            self.sock.send(str(new_airport).encode())
+            self.sock.send(str("new_airport").encode())
             self.calculate_reward()
         elif response == "Delay":
             pass
@@ -79,9 +84,9 @@ class Airport:
     def calculate_reward(self, action):
         reward = 0
         # Get the current observation
-        wind_speed = self.packet[1]
-        temperature = self.packet[2]
-        precipitation = self.packet[3]
+        wind_speed = self.weather[0]
+        temperature = self.weather[1]
+        precipitation = self.weather[2]
 
         # If the action is to land
         if action == 1:
@@ -101,5 +106,8 @@ class Airport:
 
         return reward
 
-    def select_new_airport(self):
-        return {}
+    def render(self, mode="pc"):
+        if mode == "web":
+            pass
+        if mode == "pc":
+            print("Safe landing")
