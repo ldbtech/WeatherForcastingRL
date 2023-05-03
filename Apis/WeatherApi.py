@@ -20,3 +20,4 @@ def setupWeather(api_key="ad109fd7f5fbf69e5f6ef765b630ffe4", place="New York"):
     # print(wind)
 
     return {"temp": temp, "humidity": humidity, "wind": wind}
+print(setupWeather())

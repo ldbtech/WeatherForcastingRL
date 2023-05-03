@@ -3,6 +3,7 @@ import socket
 from Apis.WeatherApi import setupWeather
 from Apis.FlightAPI import flightapi
 import gymnasium
+from gymnasium import spaces
 
 
 class Airport(gymnasium.Env):
@@ -32,18 +33,17 @@ class Airport(gymnasium.Env):
     # SELECT NEW AIRPORT:
     This method, will look for near by airport that is safe to land. Will look around Airplane location and fuel.
     #
-
+    If we can read the dataset and decide if should Delay or keep it going. then send it to flight.
     """
 
     metadata = {"render_mode": ["web", "pc"]}
 
-    def __init__(self, port, airport_ip):
-        self.observation_space = gymnasium.spaces.Box(
-            low=0, high=100, shape=(3,), dtype=float
-        )
-        self.action_space = gymnasium.spaces.Discrete(4)
-        # self.observation_space = {1: "Wind_Speed", 2: "Temperature", 3: "Precipitation"}
+    def __init__(self, port, airport_ip, train=True):
+        # Wether the airport should delays flight, or keep it going.
+        # self.observation_space = {0: Delays, 1: Open}
+        self.observation_space = spaces.Discrete(2)
         # self.action_space = {0: "Delay", 1: "cancel", 2: "Proceed", 3: "Redirect"}
+        self.action_space = gymnasium.spaces.Discrete(4)
         self.port = port
         self.airport_ip = airport_ip
         self.packet = {}
@@ -57,6 +57,10 @@ class Airport(gymnasium.Env):
         self.reward = 0
         self.socket()
         self.sock.connect((self.airport_ip, self.port))
+
+        observation = 0
+        info = {}
+        return observation, info
 
     def step(self, action):
         self.sock.send(str(action).encode())
